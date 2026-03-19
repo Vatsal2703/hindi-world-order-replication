@@ -236,21 +236,26 @@ def parse_ud_hindi(ud_dir: str) -> List[Sentence]:
 
 
 def filter_valid_sentences(sentences: List[Sentence]) -> List[Sentence]:
-    valid = [s for s in sentences if s.has_subject() and s.has_object()]
+    # 1. Fixed: removed () here
+    valid = [s for s in sentences if s.has_subject and s.has_object]    
     
     print(f"{'='*60}")
     print("FILTERING RESULTS")
     print(f"{'='*60}")
     print(f"Total sentences: {len(sentences):,}")
-    print(f"With subject (nsubj): {sum(1 for s in sentences if s.has_subject()):,}")
-    print(f"With object (obj/iobj): {sum(1 for s in sentences if s.has_object()):,}")
+    
+    # 2. Fixed: removed () from s.has_subject
+    print(f"With subject (nsubj): {sum(1 for s in sentences if s.has_subject):,}")
+    
+    # 3. Fixed: removed () from s.has_object
+    print(f"With object (obj/iobj): {sum(1 for s in sentences if s.has_object):,}")
+    
     print(f"With BOTH subject AND object: {len(valid):,}")
     print(f"\nTarget for paper: 1,996")
     print(f"Status: {' SUFFICIENT' if len(valid) >= 1996 else '️  INSUFFICIENT'}")
     print(f"{'='*60}\n")
     
     return valid
-
 
 def show_sample_sentences(sentences: List[Sentence], n: int = 3):
     print(f"{'='*60}")

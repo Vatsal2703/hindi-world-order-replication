@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-Filter sentences where FIRST preverbal constituent is Subject or Object
-Following professor's criteria
+Step 4: Filter sentences based on the 4 replication conditions from the paper.
+Conditions:
+a) Well-defined subjects and objects
+b) Projective trees
+c) Declarative sentences
+d) Finite verb root with at least two preverbal dependents
 """
 
 import sys
 import os
 import pickle
+from tqdm import tqdm
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -14,132 +19,143 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from parsers.ud_parser import Sentence, Word
 
-print("\n" + "="*70)
-print(" FILTERING: First Constituent Must Be Subject/Object")
-print("="*70 + "\n")
+# ============================================================================
+# LINGUISTIC CONDITION CHECKERS
+# ============================================================================
 
-# Load valid sentences
+def is_projective(sentence: Sentence) -> bool:
+    """
+    Condition (b): Checks if the dependency tree is projective.
+    A tree is projective if no dependency arcs cross.
+    """
+    words = sentence.words
+    for i, w1 in enumerate(words):
+        if w1.head == 0: continue # Skip root
+        
+        # Define the range of the first arc (from word to its head)
+        start1, end1 = min(w1.idx, w1.head), max(w1.idx, w1.head)
+        
+        for j, w2 in enumerate(words):
+            if w2.head == 0: continue
+            start2, end2 = min(w2.idx, w2.head), max(w2.idx, w2.head)
+            
+            # Check for crossing: start1 < start2 < end1 < end2
+            if (start1 < start2 < end1 < end2) or (start2 < start1 < end2 < end1):
+                return False
+    return True
+
+def is_declarative(sentence: Sentence) -> bool:
+    """
+    Condition (c): Excludes interrogatives (questions).
+    Checks for question marks and common Hindi interrogative markers.
+    """
+    interrogative_markers = {'क्या', 'क्यों', 'कैसे', 'कब', 'कहाँ', 'किस'}
+    # Exclude if question mark is present
+    if '?' in sentence.text or '？' in sentence.text:
+        return False
+    # Exclude if common question words are present
+    forms = {w.form for w in sentence.words}
+    if any(q in forms for q in interrogative_markers):
+        return False
+    return True
+
+def is_finite_verb(word: Word) -> bool:
+    """
+    Condition (d): Checks if the root is a finite verb.
+
+    """
+    # Simply ensure the root is a verbal element
+    return word.upos in ['VERB', 'AUX']
+
+# ============================================================================
+# MAIN FILTERING SCRIPT
+# ============================================================================
+
 INPUT_FILE = "./data/processed/valid_sentences.pkl"
+OUTPUT_FILE = "./data/processed/replication_filtered_sentences.pkl"
+
+print("\n" + "="*70)
+print(" REPLICATION FILTERING: APPLYING 4 CONDITIONS")
+print("="*70 + "\n")
 
 if not os.path.exists(INPUT_FILE):
     print(f"ERROR: {INPUT_FILE} not found!")
     exit(1)
 
-print(f"Loading sentences from: {INPUT_FILE}")
-
 with open(INPUT_FILE, 'rb') as f:
     sentences = pickle.load(f)
 
-print(f"  → Loaded {len(sentences):,} sentences\n")
-
-# Core argument relations (Subject and Object types)
-CORE_ARGUMENTS = {
-    'nsubj',       # nominal subject
-    'nsubj:pass',  # passive subject  
-    'obj',         # object
-    'iobj',        # indirect object
-    'csubj',       # clausal subject
-    'csubj:pass'   # passive clausal subject
-}
-
-# Filter sentences
-print("Filtering sentences...")
+# Define core relation sets
+SUBJ_TAGS = {'nsubj', 'nsubj:pass', 'csubj', 'csubj:pass'}
+OBJ_TAGS = {'obj', 'iobj'}
 
 filtered = []
 stats = {
     'total': len(sentences),
-    'excluded_length': 0,
-    'excluded_first': 0,
-    'excluded_no_preverbal': 0,
+    'excluded_non_transitive': 0, # Condition (a)
+    'excluded_non_projective': 0, # Condition (b)
+    'excluded_non_declarative': 0, # Condition (c)
+    'excluded_non_finite': 0,      # Condition (d)
+    'excluded_preverbal_count': 0, # Condition (d)
     'included': 0
 }
 
-excluded_examples = []
-included_examples = []
+for sent in tqdm(sentences, desc="Filtering"):
+    # 1. Condition (d): Finite Verb Root
+    if not sent.root_word or not is_finite_verb(sent.root_word):
+        stats['excluded_non_finite'] += 1
+        continue
 
-for sent in sentences:
-    # Get preverbal constituents
-    preverbal = sent.get_preverbal_constituents()
-    
-    # Skip if no preverbal constituents
-    if len(preverbal) == 0:
-        stats['excluded_no_preverbal'] += 1
+    # 2. Condition (a): Both Subject and Object present
+    has_sub = any(w.deprel in SUBJ_TAGS for w in sent.words)
+    has_obj = any(w.deprel in OBJ_TAGS for w in sent.words)
+    if not (has_sub and has_obj):
+        stats['excluded_non_transitive'] += 1
         continue
-    
-    # Must have 2-4 preverbal constituents for variant generation
-    if not (2 <= len(preverbal) <= 4):
-        stats['excluded_length'] += 1
+
+    # 3. Condition (b): Projectivity (no crossing arcs)
+    if not is_projective(sent):
+        stats['excluded_non_projective'] += 1
         continue
-    
-    # Get first constituent
-    first = preverbal[0]
-    
-    # CRITICAL FILTER: First must be subject or object
-    if first.deprel not in CORE_ARGUMENTS:
-        stats['excluded_first'] += 1
-        if len(excluded_examples) < 10:
-            excluded_examples.append((sent, first))
+
+    # 4. Condition (c): Declarative only
+    if not is_declarative(sent):
+        stats['excluded_non_declarative'] += 1
+        # --- ADD THESE LINES TO SEE THE DISREGARDED SENTENCES ---
+        if stats['excluded_non_declarative'] < 10: # Print only first 10 to avoid flooding
+            print(f"\n🚫 Disregarded (Non-Declarative): {sent.text}")
+        # -------------------------------------------------------
         continue
-    
-    # Passed all filters
+
+    # 5. Condition (d): At least two preverbal dependents (keeping 2-4 limit)
+    preverbal = sent.get_preverbal_constituents() 
+    if len(preverbal) < 2: 
+        stats['excluded_preverbal_count'] += 1
+        continue
+
+    # ALL CONDITIONS MET - (Subject/Object First condition removed)
     filtered.append(sent)
     stats['included'] += 1
-    
-    if len(included_examples) < 10:
-        included_examples.append((sent, first))
 
-# Print statistics
+# Summary results
 print("\n" + "="*70)
-print("FILTERING RESULTS")
+print("FILTERING RESULTS SUMMARY")
 print("="*70)
-print(f"Total input sentences: {stats['total']:,}")
-print(f"\nExclusions:")
-print(f"  - No preverbal constituents: {stats['excluded_no_preverbal']:,}")
-print(f"  - Wrong length (not 2-4): {stats['excluded_length']:,}")
-print(f"  - First not subj/obj: {stats['excluded_first']:,}")
-print(f"\n REMAINING: {stats['included']:,} sentences")
-print(f"   Filter rate: {100 * stats['included'] / stats['total']:.1f}%")
+print(f"Total processed: {stats['total']:,}")
+print(f"Included: {stats['included']:,}")
+print(f"Filter Rate: {100 * stats['included'] / stats['total']:.1f}%")
+print("-" * 30)
+print(f"Exclusions:")
+print(f" - Non-transitive: {stats['excluded_non_transitive']:,}")
+print(f" - Non-projective: {stats['excluded_non_projective']:,}")
+print(f" - Non-declarative: {stats['excluded_non_declarative']:,}")
+print(f" - Non-finite root: {stats['excluded_non_finite']:,}")
+print(f" - Preverbal count: {stats['excluded_preverbal_count']:,}")
 print("="*70 + "\n")
 
-# Show excluded examples
-if excluded_examples:
-    print("Examples of EXCLUDED sentences (first constituent not subj/obj):\n")
-    
-    for i, (sent, first_const) in enumerate(excluded_examples[:5], 1):
-        preverbal = sent.get_preverbal_constituents()
-        print(f"{i}. Text: {sent.text}")
-        print(f"   First constituent: '{first_const.form}' (relation: {first_const.deprel})")
-        print(f"   All preverbal: {[f'{w.form}({w.deprel})' for w in preverbal]}")
-        print(f"   Excluded: First is '{first_const.deprel}', not subject/object\n")
-
-# Show included examples
-if included_examples:
-    print("="*70)
-    print("Examples of INCLUDED sentences (first is subj/obj):\n")
-    
-    for i, (sent, first_const) in enumerate(included_examples[:5], 1):
-        preverbal = sent.get_preverbal_constituents()
-        print(f"{i}. Text: {sent.text}")
-        print(f"   First constituent: '{first_const.form}' (relation: {first_const.deprel})")
-        print(f"   All preverbal: {[f'{w.form}({w.deprel})' for w in preverbal]}")
-        print(f"   Included: First is '{first_const.deprel}' (subject/object)\n")
-
-# Save filtered sentences
-OUTPUT_DIR = "./data/processed"
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "first_core_arg_sentences.pkl")
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+# Save results
+os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
 with open(OUTPUT_FILE, 'wb') as f:
     pickle.dump(filtered, f)
 
-print("="*70)
-print(f"SAVED: {len(filtered):,} filtered sentences")
-print(f"   Output: {OUTPUT_FILE}")
-print("="*70 + "\n")
-
-print("NEXT STEPS:")
-print("1.  Filtering complete")
-print("2. ⏳ Re-generate variants with filtered sentences")
-print("   → Run: python scripts/05_generate_variants_filtered.py")
-print()
+print(f"Saved {len(filtered):,} sentences to {OUTPUT_FILE}")
