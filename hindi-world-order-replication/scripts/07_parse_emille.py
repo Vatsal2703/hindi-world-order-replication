@@ -1,5 +1,5 @@
 import os
-import stanza
+import stanza # type: ignore
 import re
 import gc # Garbage Collector
 

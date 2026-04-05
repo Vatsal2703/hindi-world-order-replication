@@ -16,32 +16,61 @@ from features.basic_features import extract_features_for_sentence
 # CONFIGURATION
 # ============================================================================
 VARIANTS_PICKLE = "./data/processed/all_variants_final.pkl"
-INPUT_FILE = "./data/processed/reference_sentences.pkl"
+INPUT_FILE = "./data/processed/replication_filtered_sentences.pkl"
 MODEL_FILE = "./data/models/trigram_model_blind.pkl"
 
 # Use a NEW filename for features so we don't overwrite the 60% baseline
 OUTPUT_FEATURES_PKL = "./data/features/pairwise_features_trigram_blind.pkl"
 OUTPUT_FEATURES_CSV = "./data/features/pairwise_features_trigram_blind.csv"
 
+def kn_prob(w1, w2, w3, model):
+    """
+    Interpolated Kneser-Ney trigram probability (Chen & Goodman 1998).
+    Falls back through bigram -> unigram continuation levels.
+    """
+    D = model['D']
+
+    # --- Unigram KN ---
+    uni_cont = model['unigram_continuation_count'].get(w3, 0)
+    total_bi = model['total_bigram_types']
+    p_uni = uni_cont / total_bi if total_bi > 0 else 1e-10
+
+    # --- Bigram KN ---
+    bi_cont = model['bigram_continuation_count'].get((w2, w3), 0)
+    bi_cont_total = model['bigram_cont_total'].get(w2, 0)
+    if bi_cont_total > 0:
+        bi_discounted = max(bi_cont - D, 0) / bi_cont_total
+        lam_bi = D * model['bigram_unique_followers'].get(w2, 0) / bi_cont_total
+    else:
+        bi_discounted = 0.0
+        lam_bi = 1.0
+    p_bi = bi_discounted + lam_bi * p_uni
+
+    # --- Trigram KN ---
+    tri_count = model['trigrams'].get((w1, w2, w3), 0)
+    bi_count  = model['bigrams'].get((w1, w2), 0)
+    if bi_count > 0:
+        tri_discounted = max(tri_count - D, 0) / bi_count
+        lam_tri = D * model['bigram_followers_count'].get((w1, w2), 0) / bi_count
+    else:
+        tri_discounted = 0.0
+        lam_tri = 1.0
+    p_tri = tri_discounted + lam_tri * p_bi
+
+    return max(p_tri, 1e-10)
+
+
 def calculate_trigram_surprisal(word_order, sentence, model):
     """
-    Calculates total sentence surprisal as per paper: Sum(-log2 P(wi | wi-1, wi-2))
+    Calculates total sentence surprisal: Sum(-log2 P_KN(wi | wi-1, wi-2))
     """
     word_map = {w.idx: w.form for w in sentence.words}
-    # <s> <s> are start tokens, </s> is end token
     tokens = ['<s>', '<s>'] + [word_map[idx] for idx in word_order] + ['</s>']
-    
+
     total_s = 0.0
-    v_size = model['vocab_size']
-    
     for i in range(2, len(tokens)):
         w1, w2, w3 = tokens[i-2], tokens[i-1], tokens[i]
-        context_count = model['bigrams'].get((w1, w2), 0)
-        trigram_count = model['trigrams'].get((w1, w2, w3), 0)
-        
-        # Laplace Smoothing (Add-1) to avoid log(0)
-        prob = (trigram_count + 1) / (context_count + v_size)
-        total_s += -math.log2(prob)
+        total_s += -math.log2(kn_prob(w1, w2, w3, model))
     return total_s
 
 def main():

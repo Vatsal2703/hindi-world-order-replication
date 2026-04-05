@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-INPUT_FILE = "./data/processed/reference_sentences.pkl"
+INPUT_FILE = "./data/processed/replication_filtered_sentences.pkl"
 OUTPUT_FILE = "./data/processed/all_variants_final.pkl"
 
 def get_subtree_indices(word_idx, sentence):

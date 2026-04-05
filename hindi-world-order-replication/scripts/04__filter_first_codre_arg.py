@@ -45,19 +45,10 @@ def is_projective(sentence: Sentence) -> bool:
     return True
 
 def is_declarative(sentence: Sentence) -> bool:
-    """
-    Condition (c): Excludes interrogatives (questions).
-    Checks for question marks and common Hindi interrogative markers.
-    """
-    interrogative_markers = {'क्या', 'क्यों', 'कैसे', 'कब', 'कहाँ', 'किस'}
-    # Exclude if question mark is present
-    if '?' in sentence.text or '？' in sentence.text:
-        return False
-    # Exclude if common question words are present
-    forms = {w.form for w in sentence.words}
-    if any(q in forms for q in interrogative_markers):
-        return False
-    return True
+    if sentence.root_word:
+        misc = sentence.root_word.misc or ""
+        return 'Stype=declarative' in misc
+    return False
 
 def is_finite_verb(word: Word) -> bool:
     """
