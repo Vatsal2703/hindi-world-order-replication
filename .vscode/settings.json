@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./hindi-world-order-replication/src"
+    ],
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python-envs.pythonProjects": []
+}

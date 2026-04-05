@@ -20,7 +20,7 @@ from parsers.ud_parser import parse_ud_hindi, filter_valid_sentences, show_sampl
 # CONFIGURATION - UPDATE THIS PATH!
 # ============================================================================
 
-UD_DIR = os.path.expanduser("~/Desktop/Mtech Thesis/UD_Hindi-HDTB-master")
+UD_DIR = os.path.expanduser("~/Downloads/Mtech Thesis/UD_Hindi-HDTB-master")
 OUTPUT_DIR = "./data/processed"
 
 
@@ -76,8 +76,8 @@ def save_csv(sentences, filepath):
             'length': len(sent),
             'root_verb': sent.root_word.form if sent.root_word else '',
             'root_idx': sent.root_idx or 0,
-            'has_subject': sent.has_subject(),
-            'has_object': sent.has_object(),
+            'has_subject': sent.has_subject,
+            'has_object': sent.has_object,
             'num_preverbal': len(sent.get_preverbal_constituents()),
         }
         data.append(row)

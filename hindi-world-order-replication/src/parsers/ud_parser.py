@@ -216,9 +216,7 @@ def parse_ud_hindi(ud_dir: str) -> List[Sentence]:
     print(f"{'='*60}\n")
     
     files = [
-        'hi_hdtb-ud-train.conllu',
-        'hi_hdtb-ud-dev.conllu',
-        'hi_hdtb-ud-test.conllu'
+        'hi_hdtb-ud-train.conllu'
     ]
     
     for filename in files:

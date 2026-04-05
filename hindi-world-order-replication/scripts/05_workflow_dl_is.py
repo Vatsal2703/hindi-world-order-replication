@@ -16,7 +16,7 @@ from parsers.ud_parser import Sentence, Word
 from features.basic_features import extract_features_for_sentence
 
 print("\n" + "="*70)
-print(" COMPLETE WORKFLOW - PROFESSOR'S FILTERED DATA")
+print(" COMPLETE WORKFLOW")
 print("="*70 + "\n")
 
 # ============================================================================
