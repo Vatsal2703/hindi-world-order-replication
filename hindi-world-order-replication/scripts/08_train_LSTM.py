@@ -115,7 +115,7 @@ for epoch in range(epochs):
         optimizer.step()
 
         total_loss += loss.item()
-        pbar.set_postfix(loss=f"{loss.item():.4f}")
+        pbar.set_postfix(loss=f"{loss.item():.4f}") 
 
         # Clear MPS cache every 500 steps to prevent memory fragmentation
         if step % 500 == 0 and device.type == "mps":

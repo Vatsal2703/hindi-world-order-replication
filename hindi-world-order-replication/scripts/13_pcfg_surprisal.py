@@ -447,7 +447,7 @@ def score_variants_batch(sentences, grammar_file, berkeley_jar):
             input=input_text,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=600,
         )
 
         if result.returncode != 0:
@@ -460,8 +460,12 @@ def score_variants_batch(sentences, grammar_file, berkeley_jar):
             if not line:
                 scores.append(None)
                 continue
+            # Berkeley outputs: "score\ttree" when -sentence_likelihood is used
+            # e.g.: "-50.190\t( ( (NP (PRON इसे)) ... ) )"
+            # Split by tab and take the first element as the score
+            parts = line.split('\t', 1)
             try:
-                scores.append(float(line))
+                scores.append(float(parts[0]))
             except ValueError:
                 scores.append(None)
 

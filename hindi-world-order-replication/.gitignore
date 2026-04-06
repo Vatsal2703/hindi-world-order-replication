@@ -4,3 +4,5 @@ data/models/emille_base_lstm.pt
 data/processed/emille_written_tokenized.pkl
 data/processed/all_sentences.pkl
 data/processed/full_hutb_sentences.pkl
+data/processed/pcfg_scores.pkl
+data/results/pcfg_scores.pkl

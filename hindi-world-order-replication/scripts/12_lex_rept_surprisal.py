@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script 21: Lexical Repetition Surprisal (Cache Language Model)
+Lexical Repetition Surprisal (Cache Language Model)
 
 Paper Section 3.1 Feature 5:
   Interpolate the trigram LM with a unigram cache LM built from
@@ -207,4 +207,3 @@ with open(OUTPUT_FILE, 'wb') as f:
 refs = sum(1 for r in results if r['is_reference'])
 print(f"\nSaved {len(results):,} lex-rept scores to {OUTPUT_FILE}")
 print(f"  References: {refs:,}  Variants: {len(results)-refs:,}")
-print("\nNext: Re-run scripts/20_merge_all_feature.py")
