@@ -24,7 +24,6 @@
 | `data/figures/*.png` | 05 | presentation |
 
 ## Notes
-- Each notebook re-mounts Drive at the top — run that cell every new Colab session.
 - In `05_analyse.ipynb`, toggle `PRIMARY = 'mean'` or `PRIMARY = 'sum'` to switch aggregation.
 - Expected dataset size: ~7,620 reference sentences, ~154,948 variants.
 - Known k=3 anomaly in by-k gap table is real, confirmed across two datasets.
