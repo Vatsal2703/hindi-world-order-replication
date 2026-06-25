@@ -1,0 +1,3 @@
+corpus,n_sents,accuracy_baseline,val_x_adp_t,val_x_adp_p,aro_x_adp_t,aro_x_adp_p
+HUTB,2779,94.62%,+6.49,<0.0001,+3.11,0.0019
+PUD,207,73.83%,see above,see above,see above,see above

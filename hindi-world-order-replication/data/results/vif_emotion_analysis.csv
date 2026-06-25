@@ -1,0 +1,14 @@
+feature,vif_raw,vif_centered
+adaptive_surprisal_diff,252.79,24.3
+aro_x_adp_c,,1.19
+arousal_x_adaptive,227.96,
+dep_len_diff,1.12,1.12
+info_status_diff,1.05,1.05
+lex_rept_surprisal_diff,66.19,66.19
+lstm_surprisal_diff,24.89,24.89
+pcfg_surprisal_diff,3.43,3.43
+prev_arousal,1.02,1.02
+prev_valence,1.02,1.02
+trigram_surprisal_diff,70.02,70.02
+val_x_adp_c,,1.18
+valence_x_adaptive,1.2,

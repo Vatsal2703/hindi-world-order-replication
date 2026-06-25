@@ -1,0 +1,11 @@
+/ Unitag for Urdu
+/ Version testing new Urdu lexicon
+analyser urdutag
+urdulexicon.txt
+disambiguator unirule
+urdurules.txt 3
+/ no decider used for now
+decider NULL
+NULL
+improver NULL
+NULL

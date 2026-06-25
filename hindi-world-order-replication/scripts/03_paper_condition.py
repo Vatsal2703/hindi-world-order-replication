@@ -12,7 +12,6 @@ Conditions applied (Section 3 of the paper):
   (d) Root is a finite verb (VERB or AUX)
   (e) No negative markers (नहीं, न, मत)
   (f) At least 2 preverbal direct dependents of root (excluding punct)
-      NO upper cap — as per professor's instruction.
 
 Why no passive subjects (nsubj:pass, csubj:pass)?
   - Paper studies ACTIVE transitive sentences where S and O can

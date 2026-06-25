@@ -1,0 +1,4 @@
+model,n_features,accuracy,mcnemar_vs_prev
+A (baseline),7,0.9461789818824767,
+B (+emotion),9,0.9461733866004185,1.0
+C (+interact),11,0.9462964828056982,0.1698105050855175

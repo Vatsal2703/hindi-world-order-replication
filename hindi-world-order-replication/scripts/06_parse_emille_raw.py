@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script 15b: Parse raw EMILLE W0037 corpus (UTF-16, CES XML format)
+Script 6: Parse raw EMILLE W0037 corpus (UTF-16, CES XML format)
 into tokenized sentences for LSTM training.
 
 Paper: LSTM trained on the written section of the EMILLE Hindi Corpus
@@ -132,5 +132,5 @@ with open(OUTPUT_FILE, 'wb') as f:
     pickle.dump(all_sentences, f)
 
 print(f"\n  Saved → {OUTPUT_FILE}")
-print("\nNext: Run scripts/17_train_LSTM.py")
+print("\nNext: Run scripts/08_train_LSTM.py")
 print("="*70 + "\n")

@@ -74,8 +74,8 @@ else:
 
 dataset = HindiDataset(emille_corpus, vocab)
 del emille_corpus  # free ~600MB of Python string objects before training
-# batch_size=8 avoids MPS OOM (16 caused 14+ GiB allocation on 1M sentences)
-train_loader = DataLoader(dataset, batch_size=8, shuffle=True, collate_fn=collate_fn)
+# batch_size=4 avoids MPS OOM (16 caused 14+ GiB allocation on 1M sentences)
+train_loader = DataLoader(dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
 
 # 4. Model Definition — Paper architecture: 2 layers, 200 hidden, 200-dim embed
 # (Section 3.1, Table 1: "200 dimensions for word embeddings and LSTM hidden layer")
@@ -93,7 +93,8 @@ class VanillaLSTM(nn.Module):
         return self.fc(out), hidden
 
 model = VanillaLSTM(len(vocab)).to(device)
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.SGD(model.parameters(), lr=20.0)
+best_loss = float('inf')
 criterion = nn.CrossEntropyLoss(ignore_index=0)
 
 # 5. Training Loop
@@ -123,6 +124,12 @@ for epoch in range(epochs):
 
     avg_loss = total_loss / len(train_loader)
     print(f"Epoch {epoch+1}/{epochs} — avg loss: {avg_loss:.4f}")
+    if avg_loss < best_loss:
+        best_loss = avg_loss
+    else:
+        for pg in optimizer.param_groups:
+            pg['lr'] /= 4.0
+        print(f"  LR annealed to {optimizer.param_groups[0]['lr']:.4f}")
     # Save checkpoint after each epoch
     torch.save(model.state_dict(), "./data/models/emille_base_lstm.pt")
     print(f"  Checkpoint saved.")

@@ -1,5 +1,6 @@
 # Large data/model files (exceed GitHub limits)
 data/models/trigram_model_blind.pkl
+data/models/br_trigram_model_blind.pkl
 data/models/emille_base_lstm.pt
 data/processed/emille_written_tokenized.pkl
 data/processed/all_sentences.pkl
