@@ -24,7 +24,6 @@ Output:
 
 import sys
 import os
-import pickle
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
@@ -32,8 +31,13 @@ from sklearn.model_selection import StratifiedKFold
 from statsmodels.stats.contingency_tables import mcnemar
 import statsmodels.api as sm
 
-FEATURES_IN = "./data/features/all_features_with_emotion.pkl"
-RESULTS_OUT = "./data/results/emotion_model_comparison.csv"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'src')))
+from utils.paths import find_base
+
+BASE = find_base(__file__)
+FEATURES_IN = os.path.join(BASE, "data", "features", "all_features_with_emotion.pkl")
+RESULTS_OUT = os.path.join(BASE, "data", "results", "emotion_model_comparison.csv")
 
 # The 7 MTP-I baseline features (difference features).
 # Adjust names here if your columns differ.

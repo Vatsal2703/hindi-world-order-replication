@@ -27,25 +27,14 @@ Output:
 import os
 import sys
 import pandas as pd
-import numpy as np
 import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-# ============================================================================
-# DYNAMIC PATH RESOLUTION
-# ============================================================================
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'src')))
+from utils.paths import find_base
 
-def find_base():
-    d = os.path.dirname(os.path.abspath(__file__))
-    while d and d != os.path.dirname(d):
-        if os.path.basename(d) == "hindi-world-order-replication":
-            return d
-        if os.path.isdir(os.path.join(d, "hindi-world-order-replication")):
-            return os.path.join(d, "hindi-world-order-replication")
-        d = os.path.dirname(d)
-    return "."
-
-BASE = find_base()
+BASE = find_base(__file__)
 FEATURES_IN = os.path.join(BASE, "data", "features", "all_features_with_emotion.pkl")
 RESULTS_OUT = os.path.join(BASE, "data", "results", "vif_emotion_analysis.csv")
 
@@ -125,7 +114,7 @@ def main():
     cen_vif = report_vif(df, cen_feats, "VIF WITH CENTERED INTERACTIONS")
 
     # ---- 4. Re-fit Model C with centered interactions ----
-    coefs = fit_and_report(
+    fit_and_report(
         df, cen_feats,
         ["prev_valence", "prev_arousal", "val_x_adp_c", "aro_x_adp_c"],
         "MODEL C COEFFICIENTS (centered interactions)")

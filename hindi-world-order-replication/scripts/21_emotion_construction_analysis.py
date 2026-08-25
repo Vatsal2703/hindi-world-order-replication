@@ -38,70 +38,24 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, "..", "src")))
+from utils.paths import find_base
+from utils.emotion import get_construction_type, sig_mark
+
 # ============================================================================
 # PATHS
 # ============================================================================
 
-def find_base():
-    d = os.path.dirname(os.path.abspath(__file__))
-    while d and d != os.path.dirname(d):
-        if os.path.basename(d) == "hindi-world-order-replication":
-            return d
-        if os.path.isdir(os.path.join(d, "hindi-world-order-replication")):
-            return os.path.join(d, "hindi-world-order-replication")
-        d = os.path.dirname(d)
-    return "."
-
-BASE = find_base()
+BASE = find_base(__file__)
 SENTENCES_IN = os.path.join(BASE, "data", "processed", "replication_filtered_sentences.pkl")
 FEATURES_IO = os.path.join(BASE, "data", "features", "all_features_with_emotion.pkl")
 RESULTS_OUT = os.path.join(BASE, "data", "results", "construction_emotion_analysis.csv")
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, "..", "src")))
 
 try:
     from parsers.ud_parser import Sentence, Word
 except ImportError:
     pass
-
-SUBJECT_RELS = {"nsubj", "nsubj:pass", "csubj", "csubj:pass"}
-
-# ============================================================================
-# CONSTRUCTION TYPE RECONSTRUCTION
-# ============================================================================
-
-def get_construction_type(sent):
-    """
-    Determine SOV / DOSV / IOSV from the attested (reference) preverbal order.
-    Returns 'SOV', 'DOSV', 'IOSV', or 'UNKNOWN'.
-    """
-    if getattr(sent, "root_idx", None) is None:
-        return "UNKNOWN"
-
-    try:
-        preverbal = sent.get_preverbal_constituents()
-    except Exception:
-        return "UNKNOWN"
-
-    subj_pos = obj_pos = iobj_pos = None
-    for i, w in enumerate(preverbal):
-        if w.deprel in SUBJECT_RELS and subj_pos is None:
-            subj_pos = i
-        elif w.deprel == "obj" and obj_pos is None:
-            obj_pos = i
-        elif w.deprel == "iobj" and iobj_pos is None:
-            iobj_pos = i
-
-    if subj_pos is None:
-        return "UNKNOWN"
-    # DO-fronted: direct object precedes subject
-    if obj_pos is not None and obj_pos < subj_pos:
-        return "DOSV"
-    # IO-fronted: indirect object precedes subject
-    if iobj_pos is not None and iobj_pos < subj_pos:
-        return "IOSV"
-    return "SOV"
 
 
 def fit_focused(subset, label_col="label"):
@@ -144,10 +98,6 @@ def fit_focused(subset, label_col="label"):
     for i, nm in enumerate(names):
         out[nm] = (model.params[i], model.tvalues[i], model.pvalues[i])
     return out
-
-
-def sig_mark(p):
-    return "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
 
 
 def main():

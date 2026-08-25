@@ -1,0 +1,17 @@
+level,feature,n,pct_zero,n_unique,min,p25,median,p75,max,mean,std,verdict
+pairwise,dep_len_diff,89361,5.35,219,-134.0,-10.0,-3.0,3.0,96.0,-4.5359,16.4193,OK
+pairwise,info_status_diff,89361,78.09,5,-2.0,0.0,0.0,0.0,2.0,0.0706,0.6026,SPARSE
+pairwise,trigram_surprisal_diff,89361,0.01,88367,-67.7817,-24.0382,-15.5705,-7.2493,26.7415,-16.1072,11.8793,OK
+pairwise,lstm_surprisal_diff,89361,0.0,88474,-49.1901,-16.826,-10.438,-4.3733,23.1175,-10.8859,8.6638,OK
+pairwise,adaptive_surprisal_diff,89361,0.0,88517,-49.7759,-16.57,-10.2564,-4.3145,24.1218,-10.7693,8.5764,OK
+pairwise,lex_rept_surprisal_diff,89361,0.02,88635,-67.7717,-22.9516,-14.6529,-6.7704,26.7415,-15.3232,11.5299,OK
+pairwise,pcfg_surprisal_diff,89361,0.0,89358,-34.0542,-6.1766,-3.6935,-1.473,10.7126,-4.0538,3.5902,OK
+per_sentence,dep_len_diff,2753,7.19,773,-78.0,-6.0,-1.2,2.0,38.4,-2.6901,9.289,OK
+per_sentence,info_status_diff,2753,74.83,63,-2.0,0.0,0.0,0.0,2.0,0.0601,0.6175,SPARSE
+per_sentence,trigram_surprisal_diff,2753,0.0,2748,-49.5581,-18.1013,-11.1454,-4.6471,18.0,-11.8401,9.4372,OK
+per_sentence,lstm_surprisal_diff,2753,0.0,2753,-33.3247,-12.7328,-7.4461,-2.739,16.1043,-7.8954,6.9997,OK
+per_sentence,adaptive_surprisal_diff,2753,0.0,2753,-34.0317,-12.6181,-7.4386,-2.6891,14.3663,-7.821,6.9096,OK
+per_sentence,lex_rept_surprisal_diff,2753,0.0,2753,-49.5516,-17.3108,-10.4024,-4.2135,15.1047,-11.1985,9.0893,OK
+per_sentence,pcfg_surprisal_diff,2753,0.0,2750,-14.7701,-4.8455,-3.0514,-1.2007,6.9111,-3.0875,2.6065,OK
+per_sentence,prev_valence,2753,0.04,2753,-0.5287,-0.0419,0.027,0.0951,0.4653,0.0237,0.1117,OK
+per_sentence,prev_arousal,2753,0.0,2752,0.3542,0.4842,0.5079,0.5303,0.7076,0.5079,0.0376,OK

@@ -1,0 +1,7 @@
+feature,r_total_vs_n,r_perword_vs_n,verdict,additive_over_tokens,scaling_exponent
+trigram_surprisal,0.882,-0.252,confound removed,True,0.872
+lstm_surprisal,0.986,0.022,confound removed,True,1.002
+adaptive_surprisal,0.986,0.028,confound removed,True,1.003
+lex_rept_surprisal,0.896,-0.23,confound removed,True,0.891
+pcfg_surprisal,0.956,0.031,confound removed,True,1.008
+dep_len,0.938,0.71,reduced,False,1.475

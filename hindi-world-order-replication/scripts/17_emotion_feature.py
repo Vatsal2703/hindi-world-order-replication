@@ -9,7 +9,6 @@ without requiring an upgrade. Uses a safe unpickler shim.
 import sys
 import os
 import pickle
-import io
 
 # ============================================================================
 # PANDAS COMPATIBILITY SHIM (handles StringDtype mismatch)
@@ -41,7 +40,6 @@ def safe_load_pickle(path):
     Falls back to standard pd.read_pickle if the shim isn't needed.
     """
     import pandas as pd
-    import numpy as np
 
     # Try standard load first
     try:
@@ -80,31 +78,17 @@ def safe_load_pickle(path):
         sys.exit(1)
 
 # ============================================================================
-# DYNAMIC PATH RESOLUTION
+# PATHS
 # ============================================================================
 
-def find_workspace_paths():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = script_dir
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'src')))
+from utils.paths import find_base
 
-    while repo_root and repo_root != os.path.dirname(repo_root):
-        if os.path.basename(repo_root) == "hindi-world-order-replication":
-            base = repo_root
-            return (os.path.join(base, "data", "features", "all_features_final.pkl"),
-                    os.path.join(base, "data", "processed", "preceding_emotions.pkl"),
-                    os.path.join(base, "data", "features", "all_features_with_emotion.pkl"))
-        if os.path.isdir(os.path.join(repo_root, "hindi-world-order-replication")):
-            base = os.path.join(repo_root, "hindi-world-order-replication")
-            return (os.path.join(base, "data", "features", "all_features_final.pkl"),
-                    os.path.join(base, "data", "processed", "preceding_emotions.pkl"),
-                    os.path.join(base, "data", "features", "all_features_with_emotion.pkl"))
-        repo_root = os.path.dirname(repo_root)
-
-    return ("./data/features/all_features_final.pkl",
-            "./data/processed/preceding_emotions.pkl",
-            "./data/features/all_features_with_emotion.pkl")
-
-FEATURES_IN, EMOTIONS_IN, FEATURES_OUT = find_workspace_paths()
+BASE = find_base(__file__)
+FEATURES_IN = os.path.join(BASE, "data", "features", "all_features_final.pkl")
+EMOTIONS_IN = os.path.join(BASE, "data", "processed", "preceding_emotions.pkl")
+FEATURES_OUT = os.path.join(BASE, "data", "features", "all_features_with_emotion.pkl")
 
 # ============================================================================
 # CONFIGURATION

@@ -12,8 +12,7 @@ RUN IN base CONDA ENV (has torch 2.2.2 + MPS):
 Outputs in data_pud/results/
 """
 
-import os, sys, pickle, math, copy, random
-from collections import defaultdict
+import os, sys, pickle, math, copy
 import pandas as pd
 import numpy as np
 import torch
@@ -27,20 +26,14 @@ from statsmodels.stats.contingency_tables import mcnemar
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'src')))
 from parsers.ud_parser import UDParser
+from utils.paths import find_base
+from utils.emotion import (load_vad_lexicon, score_sentence, get_construction_type,
+                            sig_mark, NEGATION_MARKERS)
 
 # ============================================================================
 # PATHS
 # ============================================================================
-def find_base():
-    d = SCRIPT_DIR
-    while d and d != os.path.dirname(d):
-        if os.path.basename(d) == "hindi-world-order-replication": return d
-        if os.path.isdir(os.path.join(d, "hindi-world-order-replication")):
-            return os.path.join(d, "hindi-world-order-replication")
-        d = os.path.dirname(d)
-    return "."
-
-BASE     = find_base()
+BASE     = find_base(__file__)
 PUD_FILE = os.path.expanduser("~/Downloads/UD_Hindi-PUD-master/hi_pud-ud-test.conllu")
 TRIGRAM  = os.path.join(BASE, "data", "models", "trigram_model.pkl")
 LSTM_PT  = os.path.join(BASE, "data", "models", "emille_base_lstm.pt")
@@ -48,10 +41,8 @@ VOCAB    = os.path.join(BASE, "data", "models", "emille_vocab.pkl")
 VAD_LEX  = os.path.join(BASE, "data", "processed", "Hindi-NRC-VAD-Lexicon.txt")
 OUT_DIR  = os.path.join(BASE, "data_pud", "results")
 
-NEGATION     = {"नहीं", "न", "मत"}
-SUBJECT_RELS = {"nsubj", "csubj"}
+SUBJECT_RELS = {"nsubj", "nsubj:pass", "csubj", "csubj:pass"}
 OBJECT_RELS  = {"obj", "iobj"}
-INTENSIFIERS = {"बहुत","अत्यधिक","ज़्यादा","ज्यादा","बेहद","अत्यंत","काफी","इतना"}
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -119,7 +110,7 @@ def filter_pud(sentences):
         if not any(w.deprel in OBJECT_RELS  for w in children): continue
         if not is_projective(s): continue
         if s.root_word is None or s.root_word.upos not in ("VERB","AUX"): continue
-        if any(w.form in NEGATION for w in s.words): continue
+        if any(w.form in NEGATION_MARKERS for w in s.words): continue
         preverbal = [w for w in children
                      if w.idx < s.root_idx and w.upos != "PUNCT"]
         if len(preverbal) < 2: continue
@@ -198,55 +189,6 @@ def info_status_score(sent, order):
         score += (len(order)-pos)/max(subtree_size,1)
     return score
 
-def load_vad_lexicon(path):
-    raw = defaultdict(list)
-    with open(path,"r",encoding="utf-8") as f:
-        sample = f.readline()
-        delim = "\t" if "\t" in sample else " "
-        f.seek(0)
-        for line in f:
-            parts = [p.strip() for p in line.strip().split(delim) if p.strip()]
-            if len(parts)<5: parts=line.strip().split()
-            if len(parts)<5: continue
-            if parts[0].lower()=="english" or parts[4]=="Hindi": continue
-            try:
-                v=(float(parts[1])-0.5)*2.0
-                a=float(parts[2])
-                w=parts[4].split()[0]
-                raw[w].append((v,a))
-            except: continue
-    return {w:(sum(s[0] for s in sc)/len(sc),
-               sum(s[1] for s in sc)/len(sc))
-            for w,sc in raw.items()}
-
-def score_emotion(words, lexicon):
-    vals,aros=[],[]
-    for i,w in enumerate(words):
-        form=w.form.strip()
-        if form not in lexicon: continue
-        v,a=lexicon[form]
-        if i>0 and words[i-1].form.strip() in NEGATION: v=-v
-        if i>0 and words[i-1].form.strip() in INTENSIFIERS: a=min(1.0,a*1.2)
-        vals.append(v); aros.append(a)
-    if not vals: return 0.0,0.5,0.0
-    return sum(vals)/len(vals),sum(aros)/len(aros),len(vals)/max(len(words),1)
-
-def get_construction(sent):
-    if sent.root_idx is None: return "UNKNOWN"
-    try: preverbal=sent.get_preverbal_constituents()
-    except: return "UNKNOWN"
-    subj=obj=iobj=None
-    for i,w in enumerate(preverbal):
-        if w.deprel in SUBJECT_RELS and subj is None: subj=i
-        elif w.deprel=="obj" and obj is None: obj=i
-        elif w.deprel=="iobj" and iobj is None: iobj=i
-    if subj is None: return "UNKNOWN"
-    if obj  is not None and obj  < subj: return "DOSV"
-    if iobj is not None and iobj < subj: return "IOSV"
-    return "SOV"
-
-def sig_mark(p):
-    return "***" if p<0.001 else "**" if p<0.01 else "*" if p<0.05 else ""
 
 # ============================================================================
 # MAIN
@@ -275,7 +217,7 @@ def main():
     print(f"  {len(all_sents):,} total → {len(sents):,} after filtering")
 
     # Construction distribution
-    ctypes=[get_construction(s) for s in sents]
+    ctypes=[get_construction_type(s) for s in sents]
     dist=pd.Series(ctypes).value_counts()
     total=len(ctypes)
     print("\n  Construction distribution:")
@@ -311,9 +253,10 @@ def main():
         # Emotion of preceding sentence
         if i>0 and context_tokens:
             prev=sent_lookup.get(ordered_ids[i-1])
-            if prev: e_val,e_aro,e_cov=score_emotion(prev.words,lexicon)
-            else: e_val,e_aro,e_cov=0.0,0.5,0.0
-        else: e_val,e_aro,e_cov=0.0,0.5,0.0
+            e_score = score_sentence(prev.words,lexicon) if prev else None
+        else:
+            e_score = None
+        e_val,e_aro = (e_score['valence'],e_score['arousal']) if e_score else (0.0,0.5)
 
         # Adapt model to context
         if context_tokens:
@@ -321,7 +264,7 @@ def main():
         else:
             adapted=base_model
 
-        ctype=get_construction(sent)
+        ctype=get_construction_type(sent)
         n_ref+=1
 
         variants=generate_variants(sent)
