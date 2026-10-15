@@ -6,10 +6,6 @@ Script 32: Surprisal and dependency length vs valence / arousal / dominance —
 Step 2 of 3 in the DISCO pipeline (31 -> 32 -> 33; run all with
 scripts/run_disco_pipeline.sh).
 
-Supervisor request (30 Sep 2026): use SURPRISAL and DEPENDENCY LENGTH (DL)
-as the difficulty parameters, identically in both corpora, and ask how each
-emotion dimension (valence, arousal, dominance) relates to them.
-
 Model, per corpus and per emotion dimension E in {valence, arousal, dominance}:
     E_z ~ surprisal_z + DL_z + log_len_z + zipf_z  [+ C(domain) for DISCO]
   spec "joint"          : both parameters together (each holding the other fixed)
