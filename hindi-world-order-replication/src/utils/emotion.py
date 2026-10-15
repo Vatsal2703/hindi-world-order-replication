@@ -1,7 +1,7 @@
 """Shared VAD-lexicon and emotion-scoring utilities for the MTP-II emotion
 pipeline (scripts 16-22): loading the Hindi NRC-VAD lexicon, scoring a
-sentence's valence/arousal, reconstructing SOV/DOSV/IOSV construction type,
-and formatting significance stars.
+sentence's valence/arousal/dominance, reconstructing SOV/DOSV/IOSV
+construction type, and formatting significance stars.
 """
 
 import os
@@ -12,17 +12,21 @@ NEGATION_MARKERS = {'नहीं', 'न', 'मत', 'ना'}
 INTENSIFIERS = {'बहुत', 'अत्यधिक', 'ज़्यादा', 'ज्यादा', 'बेहद', 'अत्यंत', 'काफी', 'इतना'}
 INTENSIFIER_BOOST = 1.2
 
-NEUTRAL_VALENCE = 0.0   # Center of [-1, +1]
-NEUTRAL_AROUSAL = 0.5   # Center of [0, 1]
+NEUTRAL_VALENCE   = 0.0   # Center of [-1, +1]
+NEUTRAL_AROUSAL   = 0.5   # Center of [0, 1]
+NEUTRAL_DOMINANCE = 0.0   # Center of [-1, +1]
 
 SUBJECT_RELS = {"nsubj", "nsubj:pass", "csubj", "csubj:pass"}
 
 
 def load_vad_lexicon(path):
     """
-    Parse the [0, 1]-scaled 5-column Hindi-NRC-VAD lexicon.
-    Valence is rescaled to [-1, +1] (0.5 -> neutral 0.0) so positive and
-    negative vectors balance; arousal is kept as a [0, 1] intensity float.
+    Parse the [0, 1]-scaled 5-column Hindi-NRC-VAD lexicon (English Word,
+    Valence, Arousal, Dominance, Hindi Word).
+    Valence and dominance are both bipolar axes (pleasant/unpleasant,
+    powerful/weak) so both are rescaled from [0, 1] to [-1, +1]
+    (0.5 -> neutral 0.0); arousal (calm/activated) is kept as a [0, 1]
+    intensity float.
     """
     if not os.path.exists(path):
         sys.exit(f"ERROR: VAD lexicon not found: {path}")
@@ -47,15 +51,19 @@ def load_vad_lexicon(path):
             try:
                 v_raw = float(parts[1])
                 a_raw = float(parts[2])
+                d_raw = float(parts[3])
                 hindi_word = parts[4].split()[0]
             except (ValueError, IndexError):
                 continue
 
             valence_scaled = (v_raw - 0.5) * 2.0
-            raw_aggregates[hindi_word].append((valence_scaled, a_raw))
+            dominance_scaled = (d_raw - 0.5) * 2.0
+            raw_aggregates[hindi_word].append((valence_scaled, a_raw, dominance_scaled))
 
     lexicon = {
-        word: (sum(s[0] for s in scores) / len(scores), sum(s[1] for s in scores) / len(scores))
+        word: (sum(s[0] for s in scores) / len(scores),
+               sum(s[1] for s in scores) / len(scores),
+               sum(s[2] for s in scores) / len(scores))
         for word, scores in raw_aggregates.items()
     }
     return lexicon
@@ -67,11 +75,12 @@ def _form_of(w):
 
 def score_sentence(words, lexicon, intensifier_boost=INTENSIFIER_BOOST):
     """
-    Score a sentence's (valence, arousal) from its lexicon-matched words,
-    applying negation flip and intensifier boost based on the preceding token.
-    `words` may be Word objects (with `.form`) or plain strings.
+    Score a sentence's (valence, arousal, dominance) from its lexicon-matched
+    words, applying negation flip and intensifier boost based on the
+    preceding token. `words` may be Word objects (with `.form`) or plain
+    strings.
     """
-    valence_vals, arousal_vals = [], []
+    valence_vals, arousal_vals, dominance_vals = [], [], []
     n_matched = 0
 
     for i, w in enumerate(words):
@@ -79,23 +88,30 @@ def score_sentence(words, lexicon, intensifier_boost=INTENSIFIER_BOOST):
         if form not in lexicon:
             continue
 
-        valence, arousal = lexicon[form]
+        valence, arousal, dominance = lexicon[form]
         n_matched += 1
 
         if i > 0:
             prev_form = _form_of(words[i - 1])
             if prev_form in NEGATION_MARKERS:
+                # Negating an emotion word inverts its dominance too
+                # (e.g. "not powerful"), same as it inverts valence.
                 valence = -valence
+                dominance = -dominance
             if prev_form in INTENSIFIERS:
+                # Intensifiers scale intensity, which is the arousal axis;
+                # dominance (in-control vs controlled) is left unchanged.
                 arousal = min(1.0, arousal * intensifier_boost)
 
         valence_vals.append(valence)
         arousal_vals.append(arousal)
+        dominance_vals.append(dominance)
 
     if not valence_vals:
         return {
             'valence': NEUTRAL_VALENCE,
             'arousal': NEUTRAL_AROUSAL,
+            'dominance': NEUTRAL_DOMINANCE,
             'coverage': 0.0,
             'n_matched': 0,
         }
@@ -103,6 +119,7 @@ def score_sentence(words, lexicon, intensifier_boost=INTENSIFIER_BOOST):
     return {
         'valence': sum(valence_vals) / len(valence_vals),
         'arousal': sum(arousal_vals) / len(arousal_vals),
+        'dominance': sum(dominance_vals) / len(dominance_vals),
         'coverage': n_matched / max(len(words), 1),
         'n_matched': n_matched,
     }

@@ -18,7 +18,7 @@ word,valence,arousal,exp_valence,exp_arousal,valence_ok,arousal_ok,note
 दुखी,-0.803,0.591,-,L,True,✗,
 निराश,-0.772,0.61,-,L,True,✗,
 उदास,-0.539,0.436,-,L,True,borderline,
-थका,-0.37,0.41,-,L,True,✓,
+थका,-0.37,0.409,-,L,True,✓,
 बोरियत,,,-,L,,,not_in_lexicon
 सुस्त,-0.303,0.289,-,L,True,✓,
 अकेला,-0.497,0.2,-,L,True,✓,

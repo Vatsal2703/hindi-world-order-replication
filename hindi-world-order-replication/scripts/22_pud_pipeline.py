@@ -325,7 +325,8 @@ def main():
         skf=StratifiedKFold(n_splits=k,shuffle=True,random_state=42)
         preds=np.zeros(len(y),dtype=int)
         for tr,te in skf.split(X,y):
-            clf=LogisticRegression(max_iter=1000)
+            # Joachims pairwise ranking: difference features, no intercept
+            clf=LogisticRegression(max_iter=1000,fit_intercept=False)
             clf.fit(X[tr],y[tr])
             preds[te]=clf.predict(X[te])
         return preds

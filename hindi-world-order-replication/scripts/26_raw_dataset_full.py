@@ -27,6 +27,27 @@ supervisor after the meeting:
      sentence has been scored it is never re-parsed on a later run -- and
      since that cache already covers the full corpus, a normal run will not
      invoke Java at all.
+  7. (v2.4) Added dominance (the powerful/weak, in-control-vs-controlled
+     axis) alongside valence and arousal, per supervisor request -- valence
+     and arousal alone can't separate e.g. anger (high dominance) from fear
+     (low dominance). New columns prev_dominance / tgt_dominance sit next to
+     the corresponding arousal columns. Dominance is bipolar like valence,
+     so it gets the same [0,1] -> [-1,+1] rescaling and the same negation
+     flip; unlike valence, it is NOT affected by the intensifier rule
+     (intensifiers scale arousal/intensity, not control).
+  8. (v2.5) trigram_surprisal now uses a proper trigram -> bigram -> unigram
+     backoff chain (previously it skipped straight from trigram to unigram,
+     over-penalising "seen this bigram, not this trigram" cases) AND is
+     scored against data/models/trigram_model_emille.pkl -- the trigram
+     retrained on the full EMILLE written corpus (~14.3M tokens, same
+     corpus the LSTM uses), replacing the old trigram_model.pkl (401K
+     tokens). A 200-sentence comparison (scripts/29_compare_trigram_
+     backoff.py) showed the ref-minus-var gap moving from -68.6 (old
+     model + old backoff) to -26.3 (new model + new backoff), in line with
+     lstm/adaptive/pcfg. lex_rept_surprisal deliberately still uses the OLD
+     trigram_model.pkl via the untouched `_word_prob()` helper -- isolating
+     one change at a time; it and trigram_surprisal are now built on
+     different corpora, noted here rather than acted on.
 
 Still one row per SENTENCE (reference and each variant), carrying ABSOLUTE
 scores rather than reference-minus-variant differences.
@@ -78,7 +99,7 @@ Output: data/results/MTP2_raw_dataset_full.csv
         data/results/MTP2_raw_perword.csv
 """
 
-VERSION = "2.3"
+VERSION = "2.5"
 
 import os
 import sys
@@ -113,7 +134,7 @@ def find_base():
 
 BASE        = find_base()
 SENTS_IN    = os.path.join(BASE, "data", "processed", "replication_filtered_sentences.pkl")
-TRIGRAM_IN  = os.path.join(BASE, "data", "models", "trigram_model.pkl")
+TRIGRAM_IN  = os.path.join(BASE, "data", "models", "trigram_model_emille.pkl")
 LSTM_IN     = os.path.join(BASE, "data", "models", "emille_base_lstm.pt")
 VOCAB_IN    = os.path.join(BASE, "data", "models", "emille_vocab.pkl")
 VAD_IN      = os.path.join(BASE, "data", "processed", "Hindi-NRC-VAD-Lexicon.txt")
@@ -208,11 +229,37 @@ def _word_prob(model, w1, w2, tok, total_uni):
     return 1e-10
 
 
+def _word_prob_backoff(model, w1, w2, w3, total_uni):
+    """
+    Three-level backoff chain (trigram -> bigram -> unigram -> floor), unlike
+    `_word_prob` above which jumps straight from trigram to unigram and
+    skips the bigram entirely when the trigram is unseen -- that penalises
+    "seen this bigram, not this trigram" as harshly as "no context at all".
+    Used only by trigram_surprisal(); lex_rept_surprisal() keeps using the
+    unmodified `_word_prob` above.
+    """
+    tri_num = model["trigrams"].get((w1, w2, w3), 0)
+    tri_den = model["bigrams"].get((w1, w2), 0)
+    if tri_num > 0 and tri_den > 0:
+        return tri_num / tri_den
+
+    bi_num = model["bigrams"].get((w2, w3), 0)
+    bi_den = model["unigrams"].get(w2, 0)
+    if bi_num > 0 and bi_den > 0:
+        return bi_num / bi_den
+
+    uni = model["unigrams"].get(w3, 0)
+    if uni > 0:
+        return uni / total_uni
+
+    return 1e-10
+
+
 def trigram_surprisal(model, tokens, total_uni):
-    """Absolute trigram surprisal, in bits."""
+    """Absolute trigram surprisal, in bits. Trigram -> bigram -> unigram backoff."""
     total, hist = 0.0, ["<s>", "<s>"]
     for tok in tokens:
-        p = _word_prob(model, hist[-2], hist[-1], tok, total_uni)
+        p = _word_prob_backoff(model, hist[-2], hist[-1], tok, total_uni)
         total += -math.log2(min(max(p, 1e-10), 1.0))
         hist.append(tok)
     return total
@@ -466,6 +513,9 @@ def build_orders(sent):
 # ============================================================================
 
 def load_vad_lexicon(path):
+    # Valence and dominance are both bipolar axes (pleasant/unpleasant,
+    # powerful/weak) so both are rescaled from [0, 1] to [-1, +1]; arousal
+    # (calm/activated) is kept as a [0, 1] intensity float.
     raw = defaultdict(list)
     with open(path, "r", encoding="utf-8") as f:
         sample = f.readline()
@@ -482,32 +532,40 @@ def load_vad_lexicon(path):
             try:
                 v = (float(parts[1]) - 0.5) * 2.0
                 a = float(parts[2])
+                d = (float(parts[3]) - 0.5) * 2.0
                 w = parts[4].split()[0]
             except (ValueError, IndexError):
                 continue
-            raw[w].append((v, a))
+            raw[w].append((v, a, d))
     return {w: (sum(s[0] for s in sc) / len(sc),
-                sum(s[1] for s in sc) / len(sc)) for w, sc in raw.items()}
+                sum(s[1] for s in sc) / len(sc),
+                sum(s[2] for s in sc) / len(sc)) for w, sc in raw.items()}
 
 
 def score_emotion(words, lexicon):
-    vals, aros, n_matched = [], [], 0
+    vals, aros, doms, n_matched = [], [], [], 0
     for i, w in enumerate(words):
         form = w.form.strip()
         if form not in lexicon:
             continue
-        v, a = lexicon[form]
+        v, a, d = lexicon[form]
         n_matched += 1
         prev = words[i - 1].form.strip() if i > 0 else ""
         if prev in NEGATION:
+            # Negating an emotion word inverts its dominance too
+            # (e.g. "not powerful"), same as it inverts valence.
             v = -v
+            d = -d
         if prev in INTENSIFIERS:
+            # Intensifiers scale intensity, which is the arousal axis;
+            # dominance (in-control vs controlled) is left unchanged.
             a = min(1.0, a * 1.2)
         vals.append(v)
         aros.append(a)
+        doms.append(d)
     if not vals:
-        return 0.0, 0.5, 0.0
-    return (sum(vals) / len(vals), sum(aros) / len(aros),
+        return 0.0, 0.5, 0.0, 0.0
+    return (sum(vals) / len(vals), sum(aros) / len(aros), sum(doms) / len(doms),
             n_matched / max(len(words), 1))
 
 # ============================================================================
@@ -581,19 +639,19 @@ def main():
         n_words = len(words)
 
         # target-sentence emotion (constant across this sentence's orderings)
-        t_val, t_aro, t_cov = score_emotion(words, lexicon)
+        t_val, t_aro, t_dom, t_cov = score_emotion(words, lexicon)
 
         # preceding sentence: emotion, LSTM context, cache
         prev = lookup.get(ordered[i - 1]) if i > 0 else None
         if prev is not None:
-            p_val, p_aro, p_cov = score_emotion(prev.words, lexicon)
+            p_val, p_aro, p_dom, p_cov = score_emotion(prev.words, lexicon)
             prev_tokens = [w.form for w in prev.words]
             prev_id = prev.sent_id
             prev_text = getattr(prev, "text", None) or " ".join(prev_tokens)
             cache_counts = Counter(prev_tokens)
             cache_size = sum(cache_counts.values())
         else:
-            p_val, p_aro, p_cov = 0.0, 0.5, 0.0
+            p_val, p_aro, p_dom, p_cov = 0.0, 0.5, 0.0, 0.0
             prev_tokens, prev_id, prev_text = None, "", ""
             cache_counts, cache_size = {}, 0
 
@@ -627,9 +685,11 @@ def main():
                 # --- emotion ---
                 "prev_valence":       round(p_val, 4),
                 "prev_arousal":       round(p_aro, 4),
+                "prev_dominance":     round(p_dom, 4),
                 "prev_coverage":      round(p_cov, 4),
                 "tgt_valence":        round(t_val, 4),
                 "tgt_arousal":        round(t_aro, 4),
+                "tgt_dominance":      round(t_dom, 4),
                 "tgt_coverage":       round(t_cov, 4),
             })
 
@@ -669,6 +729,13 @@ def main():
     for c in PER_WORD_SRC:
         vals = pd.to_numeric(df[c], errors="coerce")
         pw[c + "_per_word"] = (vals / df["n_words"].where(df["n_words"] > 0)).round(4)
+    # valence/arousal/dominance are already per-sentence averages over
+    # lexicon-matched words (not length-summed quantities like surprisal/
+    # dep_len), so they are carried through as-is rather than divided by
+    # n_words again.
+    for c in ["prev_valence", "prev_arousal", "prev_dominance",
+              "tgt_valence", "tgt_arousal", "tgt_dominance"]:
+        pw[c] = df[c]
     pw.to_csv(OUT_PERWORD, index=False, encoding="utf-8-sig")
 
     # ---- Summary -----------------------------------------------------------

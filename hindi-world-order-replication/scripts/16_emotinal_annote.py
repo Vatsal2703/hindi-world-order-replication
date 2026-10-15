@@ -16,7 +16,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'src')))
 
 from utils.paths import find_base
-from utils.emotion import load_vad_lexicon, score_sentence, NEUTRAL_VALENCE, NEUTRAL_AROUSAL
+from utils.emotion import (load_vad_lexicon, score_sentence,
+                            NEUTRAL_VALENCE, NEUTRAL_AROUSAL, NEUTRAL_DOMINANCE)
 
 try:
     from parsers.ud_parser import Sentence, Word
@@ -74,6 +75,7 @@ def main():
             score = {
                 'valence': NEUTRAL_VALENCE,
                 'arousal': NEUTRAL_AROUSAL,
+                'dominance': NEUTRAL_DOMINANCE,
                 'coverage': 0.0,
                 'n_matched': 0,
                 'has_context': False,

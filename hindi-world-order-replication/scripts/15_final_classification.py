@@ -183,7 +183,11 @@ def run_cv_classification(df, feature_cols, n_splits=10):
     predictions = np.zeros(len(y), dtype=int)
 
     for train_idx, test_idx in kf.split(X, y):
-        clf = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42)
+        # Joachims pairwise ranking: difference features, NO intercept.
+        # The +1/-1 mirror pairs make the data antisymmetric; a nonzero bias
+        # would break w·(x_ref - x_var) > 0  <=>  w·(x_var - x_ref) < 0.
+        clf = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42,
+                                 fit_intercept=False)
         clf.fit(X[train_idx], y[train_idx])
         predictions[test_idx] = clf.predict(X[test_idx])
 
@@ -206,50 +210,36 @@ def run_regression(df, feature_cols, dataset_name="Full"):
 
     n, p = X.shape
 
-    # Add intercept
-    X_with_intercept = np.column_stack([np.ones(n), X])
-
-    # Logistic regression coefficients via sklearn
+    # Joachims pairwise ranking: difference features, NO intercept
+    # (a nonzero bias would break antisymmetry of the +1/-1 mirror pairs).
     clf = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42,
-                             fit_intercept=True)
+                             fit_intercept=False)
     clf.fit(X, y)
 
     # Get coefficients
-    intercept = clf.intercept_[0]
     coefs = clf.coef_[0]
 
     # Compute standard errors using the Hessian (Fisher information)
     # For logistic regression: SE = sqrt(diag(inv(X'WX)))
-    # where W = diag(p*(1-p)) and p = predicted probabilities
+    # where W = diag(p*(1-p)) and p = predicted probabilities.
+    # No intercept column — the model has none.
     probs = clf.predict_proba(X)[:, 1]
     W = probs * (1 - probs)
 
-    # Add intercept column for SE computation
-    X_full = np.column_stack([np.ones(n), X])
-    WX = X_full * W[:, np.newaxis]
-    H = X_full.T @ WX  # Fisher information matrix
+    WX = X * W[:, np.newaxis]
+    H = X.T @ WX  # Fisher information matrix
 
     try:
         H_inv = np.linalg.inv(H)
-        se_all = np.sqrt(np.diag(H_inv))
-        se_intercept = se_all[0]
-        se_coefs = se_all[1:]
+        se_coefs = np.sqrt(np.diag(H_inv))
     except np.linalg.LinAlgError:
-        se_intercept = 0.0
         se_coefs = np.zeros(p)
 
     # t-values = coefficient / standard error
-    t_intercept = intercept / se_intercept if se_intercept > 0 else 0.0
     t_coefs = np.array([c / s if s > 0 else 0.0 for c, s in zip(coefs, se_coefs)])
 
     # Build results
     results = []
-    results.append({
-        'predictor': 'intercept',
-        'beta': intercept,
-        'se': se_intercept,
-        't': t_intercept,
-    })
     for col, beta, se, t in zip(feature_cols, coefs, se_coefs, t_coefs):
         results.append({
             'predictor': FEATURE_LABELS.get(col, col),
@@ -498,7 +488,8 @@ def main():
     print(" FEATURE COEFFICIENTS — FULL MODEL (base1+g)")
     print("=" * 70)
 
-    clf_full = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42)
+    clf_full = LogisticRegression(max_iter=1000, solver='lbfgs', random_state=42,
+                                  fit_intercept=False)
     X_full = df_clean[FEATURE_SETS['base1+g']].values
     y_full = df_clean['label'].values
     clf_full.fit(X_full, y_full)

@@ -73,7 +73,9 @@ def cv_predictions(X, y, n_splits=10, seed=42):
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
     preds = np.zeros(len(y), dtype=int)
     for train_idx, test_idx in skf.split(X, y):
-        clf = LogisticRegression(max_iter=1000, solver="lbfgs")
+        # Joachims pairwise ranking: difference features, NO intercept
+        # (the +1/-1 mirror pairs are antisymmetric; a bias would break that).
+        clf = LogisticRegression(max_iter=1000, solver="lbfgs", fit_intercept=False)
         clf.fit(X[train_idx], y[train_idx])
         preds[test_idx] = clf.predict(X[test_idx])
     return preds
@@ -92,11 +94,14 @@ def mcnemar_test(y_true, pred1, pred2):
 
 
 def fit_statsmodels(X, y, names):
-    """Fit logistic regression with statsmodels to get coefficients + t/z-values."""
-    Xc = sm.add_constant(X)
-    model = sm.Logit(y, Xc).fit(disp=0)
+    """Fit logistic regression with statsmodels to get coefficients + t/z-values.
+
+    No constant term — Joachims pairwise ranking uses difference features and
+    an intercept would break antisymmetry of the +1/-1 mirror pairs.
+    """
+    model = sm.Logit(y, X).fit(disp=0)
     coefs = {}
-    for i, name in enumerate(["const"] + names):
+    for i, name in enumerate(names):
         coefs[name] = (model.params[i], model.tvalues[i], model.pvalues[i])
     return coefs
 

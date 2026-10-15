@@ -103,7 +103,7 @@ def circumplex_check(lexicon):
     print("-" * 70)
 
     # Data-driven arousal threshold = median arousal across the lexicon
-    arousal_median = statistics.median(a for _, a in lexicon.values())
+    arousal_median = statistics.median(a for _, a, _ in lexicon.values())
     print(f"  Arousal threshold (lexicon median): {arousal_median:.3f}")
     print(f"  Neutral band: +/- {NEUTRAL_BAND}\n")
 
@@ -120,7 +120,7 @@ def circumplex_check(lexicon):
             print(f"  {word:>10s}: not in lexicon")
             continue
 
-        v, a = lexicon[word]
+        v, a, _d = lexicon[word]
 
         # --- valence sign ---
         got_v = "+" if v >= 0 else "-"

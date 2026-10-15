@@ -9,3 +9,5 @@ data/processed/pcfg_scores.pkl
 data/results/pcfg_scores.pkl
 data/results/.pcfg_scores_checkpoint.pkl
 data/results/MTP2_all_orderings.conllu
+data/models/trigram_model_emille.pkl
+data/results/MTP2_raw_dataset_full_BACKUP.csv
