@@ -1,0 +1,15 @@
+corpus,parameter,emotion,pearson_r,p,n
+HUTB,surprisal,val,0.01728,0.36468,2753
+HUTB,surprisal,aro,-0.09468,0.0,2753
+HUTB,surprisal,dom,-0.20197,0.0,2753
+HUTB,dl,val,0.07941,3e-05,2753
+HUTB,dl,aro,0.01841,0.33416,2753
+HUTB,dl,dom,0.05228,0.00608,2753
+HUTB,surprisal,dl,-0.05075,0.00774,2753
+DISCO,surprisal,val,-0.0528,0.00294,3171
+DISCO,surprisal,aro,0.15802,0.0,3171
+DISCO,surprisal,dom,0.10536,0.0,3171
+DISCO,dl,val,-0.02937,0.09816,3171
+DISCO,dl,aro,-0.01265,0.47635,3171
+DISCO,dl,dom,-0.01579,0.37398,3171
+DISCO,surprisal,dl,-0.36523,0.0,3171

@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "features": [
+    "dep_len",
+    "info_status",
+    "trigram_total_bits",
+    "lstm_total_bits"
+  ],
+  "weights": [
+    -0.015224652494253772,
+    0.27539290411246237,
+    -0.28123400756577654,
+    -0.07593647954482377
+  ],
+  "cv_accuracy": {
+    "DL alone": 61.77,
+    "IS alone": 52.77,
+    "trigram alone": 90.34,
+    "LSTM alone": 86.29,
+    "all four": 91.73
+  },
+  "n_pairs": 178722,
+  "n_sentences": 2753,
+  "note": "score(variant) = sum(weights * features); higher = more preferred order"
+}

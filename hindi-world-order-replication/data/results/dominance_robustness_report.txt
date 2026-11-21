@@ -1,0 +1,56 @@
+SCRIPT 34: DOMINANCE ROBUSTNESS + SYNTAX CONTROLS (v1.1)
+========================================================
+
+Sentences: 2,753 HUTB references | frequency control: wordfreq Zipf ('hi')
+Re-scored dominance matches MTP2_raw_perword.csv for 100.0% of sentences
+
+STEP 1 — tertiles of difficulty (mean emotion low / mid / high; d = high vs low)
+  trigram  dom          +0.104 +0.090 +0.067   d = -0.40  p = 5.1e-17  monotonic
+  trigram  dom_content  +0.178 +0.155 +0.122   d = -0.36  p = 4.1e-14  monotonic
+  trigram  val          +0.022 +0.022 +0.028   d = +0.05  p = 2.7e-01
+  trigram  aro          +0.511 +0.507 +0.504   d = -0.21  p = 7.3e-06  monotonic
+  lstm     dom          +0.093 +0.089 +0.079   d = -0.14  p = 3.0e-03  monotonic
+  lstm     dom_content  +0.167 +0.149 +0.139   d = -0.18  p = 1.8e-04  monotonic
+  lstm     val          +0.016 +0.026 +0.031   d = +0.13  p = 5.8e-03
+  lstm     aro          +0.510 +0.507 +0.506   d = -0.11  p = 1.9e-02  monotonic
+  dl       dom          +0.078 +0.091 +0.092   d = +0.14  p = 2.4e-03
+  dl       dom_content  +0.143 +0.157 +0.155   d = +0.07  p = 1.1e-01
+  dl       val          +0.016 +0.024 +0.033   d = +0.15  p = 1.8e-03
+  dl       aro          +0.505 +0.509 +0.509   d = +0.09  p = 5.6e-02
+
+STEP 2 — beta of difficulty on dominance (z units), nested controls; * p < .05
+  dom          trigram  M0 -0.200*  M1 -0.265*  M2 -0.259*  M3 -0.254*  M4 -0.271*
+                        M3 bootstrap 95% CI [-0.307, -0.205], sign consistency 100.0%
+                        -> SURVIVES (M0 -0.200 -> M3 -0.254, +27% vs M0)
+  dom          lstm     M0 -0.035   M1 -0.083*  M2 -0.084*  M3 -0.077*  M4 -0.092*
+                        M3 bootstrap 95% CI [-0.123, -0.032], sign consistency 100.0%
+                        -> SURVIVES (M0 -0.035 -> M3 -0.077, +124% vs M0)
+  dom          dl       M0 -0.087*  M1 -0.121*  M2 -0.126*  M3 -0.134*  M4 -0.101*
+                        M3 bootstrap 95% CI [-0.181, -0.083], sign consistency 100.0%
+                        -> SURVIVES (M0 -0.087 -> M3 -0.134, +55% vs M0)
+  dom_content  trigram  M0 -0.227*  M1 -0.224*  M2 -0.225*  M3 -0.221*  M4 -0.232*
+                        M3 bootstrap 95% CI [-0.276, -0.163], sign consistency 100.0%
+                        -> SURVIVES (M0 -0.227 -> M3 -0.221, -3% vs M0)
+  dom_content  lstm     M0 -0.083*  M1 -0.078*  M2 -0.079*  M3 -0.073*  M4 -0.083*
+                        M3 bootstrap 95% CI [-0.116, -0.033], sign consistency 100.0%
+                        -> SURVIVES (M0 -0.083 -> M3 -0.073, -12% vs M0)
+  dom_content  dl       M0 -0.056*  M1 -0.061*  M2 -0.061*  M3 -0.068*  M4 -0.046 
+                        M3 bootstrap 95% CI [-0.118, -0.015], sign consistency 99.5%
+                        -> SURVIVES (M0 -0.056 -> M3 -0.068, +22% vs M0)
+
+Syntactic features: mean dominance and difficulty by level
+  passive         0        n=2331  dom +0.087  dom_content +0.155  trigram   7.63  DL  3.08
+  passive         1        n=422   dom +0.086  dom_content +0.130  trigram   7.49  DL  2.78
+  ergative        0        n=988   dom +0.112  dom_content +0.140  trigram   7.95  DL  2.84
+  ergative        1        n=1765  dom +0.073  dom_content +0.158  trigram   7.42  DL  3.14
+  transitive      0        n=0     dom +nan  dom_content +nan  trigram    nan  DL   nan
+  transitive      1        n=2753  dom +0.087  dom_content +0.151  trigram   7.61  DL  3.03
+  nonverbal_pred  0        n=2753  dom +0.087  dom_content +0.151  trigram   7.61  DL  3.03
+  nonverbal_pred  1        n=0     dom +nan  dom_content +nan  trigram    nan  DL   nan
+  construction    DOSV     n=143   dom +0.058  dom_content +0.145  trigram   8.10  DL  2.58
+  construction    IOSV     n=82    dom +0.106  dom_content +0.134  trigram   7.72  DL  2.75
+  construction    SOV      n=2526  dom +0.088  dom_content +0.153  trigram   7.57  DL  3.07
+  construction    UNKNOWN  n=2     dom -0.112  dom_content +0.036  trigram  13.10  DL  1.72
+
+Models: M0 length + frequency | M1 + passive + ergative | M2 + construction + info status + n preverbal | M3 + n clauses | M4 + valence
+Emotion is a text-content proxy (NRC-VAD), not reader mood.

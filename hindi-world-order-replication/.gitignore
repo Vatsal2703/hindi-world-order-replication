@@ -1,8 +1,25 @@
 # Large data/model files (exceed GitHub limits)
 data/models/trigram_model_blind.pkl
+data/models/br_trigram_model_blind.pkl
 data/models/emille_base_lstm.pt
 data/processed/emille_written_tokenized.pkl
 data/processed/all_sentences.pkl
 data/processed/full_hutb_sentences.pkl
 data/processed/pcfg_scores.pkl
 data/results/pcfg_scores.pkl
+data/results/.pcfg_scores_checkpoint.pkl
+data/results/MTP2_all_orderings.conllu
+data/models/trigram_model_emille.pkl
+data/results/MTP2_raw_dataset_full_BACKUP.csv
+
+# environments, caches, OS files (added 2026-10-31)
+venv/
+__pycache__/
+.DS_Store
+.ipynb_checkpoints/
+# superseded intermediate copies kept locally
+data/results/MTP2_raw_dataset_full_BEFORE_MODIFIER_FIX.csv
+data/results/MTP2_raw_perword_BEFORE_MODIFIER_FIX.csv
+
+# superseded material moved out of the pipeline (2026-11-02)
+_archive/

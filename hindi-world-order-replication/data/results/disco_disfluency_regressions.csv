@@ -1,0 +1,10 @@
+corpus,emotion,measure,n,beta,ci_lo,ci_hi,p
+DISCO,valence,disfluent,3171,-0.1807,-0.2892,-0.0722,0.0011
+DISCO,valence,deletion,3171,-0.0101,-0.0486,0.0284,0.6072
+DISCO,valence,repair,3171,0.0185,-0.0627,0.0997,0.6548
+DISCO,arousal,disfluent,3171,-0.0855,-0.1875,0.0166,0.1009
+DISCO,arousal,deletion,3171,-0.0323,-0.0693,0.0048,0.0881
+DISCO,arousal,repair,3171,-0.0161,-0.0947,0.0625,0.6875
+DISCO,dominance,disfluent,3171,-0.1236,-0.2265,-0.0207,0.0186
+DISCO,dominance,deletion,3171,-0.0475,-0.0833,-0.0117,0.0094
+DISCO,dominance,repair,3171,0.0317,-0.0467,0.1101,0.4282

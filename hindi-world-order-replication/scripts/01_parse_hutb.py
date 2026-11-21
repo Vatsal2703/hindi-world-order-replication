@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Version: v1.1  (version line added 2026-10-31 for the final submission; v1.1 = data path no longer hard-coded)
 """
 Step 1: Parse UD Hindi-HDTB corpus and save filtered sentences
 """
@@ -20,7 +21,15 @@ from parsers.ud_parser import parse_ud_hindi, filter_valid_sentences, show_sampl
 # CONFIGURATION - UPDATE THIS PATH!
 # ============================================================================
 
-UD_DIR = os.path.expanduser("~/Downloads/Mtech Thesis/UD_Hindi-HDTB-master")
+# v1.1: path is no longer hard-coded to one laptop. Order of preference:
+#   1) first command-line argument, 2) ./data/raw/UD_Hindi-HDTB-master (repo),
+#   3) the original location on the author's machine.
+# Download UD_Hindi-HDTB from https://github.com/UniversalDependencies/UD_Hindi-HDTB
+_CANDIDATES = [sys.argv[1]] if len(sys.argv) > 1 else []
+_CANDIDATES += ["./data/raw/UD_Hindi-HDTB-master",
+                os.path.expanduser("~/Downloads/Mtech Thesis/UD_Hindi-HDTB-master")]
+UD_DIR = next((c for c in _CANDIDATES if os.path.isdir(c)), _CANDIDATES[0])
+print(f"=== 01_parse_hutb.py v1.1 === UD_Hindi-HDTB folder: {UD_DIR}")
 OUTPUT_DIR = "./data/processed"
 
 

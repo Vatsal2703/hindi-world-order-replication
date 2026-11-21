@@ -1,0 +1,19 @@
+# requirements.txt (v1.0) -- hindi-world-order-replication
+# Python 3.9+ ; tested in conda `base` (Python 3.9, macOS)
+pandas>=2.0
+numpy>=1.23
+scipy
+statsmodels
+scikit-learn
+openpyxl
+wordfreq
+tqdm
+matplotlib
+torch>=2.0            # LSTM training / scoring (scripts 08, 10, 11, 37, 38) and the toolkit
+# toolkit (toolkit/app.py)
+streamlit>=1.40
+stanza>=1.8
+altair>=5
+# optional: only to re-parse DISCO (script 32 --parser) -- the cached parse is in data/disco/disco_dl.csv
+# spacy>=3.7
+# Java (JRE) is needed for the Berkeley PCFG parser (script 13, tools/berkeley-parser)
